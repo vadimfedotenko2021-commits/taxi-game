@@ -1,0 +1,104 @@
+
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Такси — Городской бизнес</title>
+<style>
+body{margin:0;background:#101827;color:white;font:16px Arial,sans-serif;padding:16px}
+main{max-width:600px;margin:auto}
+header,section{background:#1c2b40;padding:18px;border-radius:16px;margin-bottom:14px}
+h1{color:#ffd447;margin-top:0}
+.stats{display:flex;justify-content:space-between;gap:8px}
+.stats div{background:#101827;padding:12px;border-radius:10px;flex:1}
+button{background:#ffd447;border:0;padding:12px;border-radius:10px;font-weight:bold;cursor:pointer;margin-top:8px}
+.car,.order{background:#293c54;padding:12px;border-radius:12px;margin:10px 0}
+small{color:#b9c7d9}
+</style>
+</head>
+<body>
+<main>
+<header>
+<h1>🚕 Такси: Городской бизнес</h1>
+<p>Развивай свою таксомоторную компанию!</p>
+<div class="stats">
+<div>💰 Баланс<br><b id="money">500</b> ₴</div>
+<div>⭐ Уровень<br><b id="level">1</b></div>
+<div>🚘 Машины<br><b id="count">1</b></div>
+</div>
+</header>
+<section>
+<h2>📋 Заказы</h2>
+<div id="orders"></div>
+<button onclick="newOrders()">🔄 Новые заказы</button>
+</section>
+<section>
+<h2>🚘 Автопарк</h2>
+<div id="cars"></div>
+</section>
+</main>
+<script>
+let game;
+try {
+ game=JSON.parse(localStorage.getItem("taxiGameSave"));
+} catch(e) {}
+if(!game) game={money:500,level:1,cars:["Эконом"],orders:[]};
+
+const catalog=[
+ {name:"Эконом",price:0,emoji:"🚕"},
+ {name:"Комфорт",price:700,emoji:"🚙"},
+ {name:"Бизнес",price:1800,emoji:"🚘"},
+ {name:"Электро",price:3500,emoji:"🔋"}
+];
+
+function save(){
+ localStorage.setItem("taxiGameSave",JSON.stringify(game));
+}
+function render(){
+ document.getElementById("money").textContent=game.money;
+ document.getElementById("level").textContent=game.level;
+ document.getElementById("count").textContent=game.cars.length;
+ document.getElementById("cars").innerHTML=catalog.map(c=>{
+ let owned=game.cars.includes(c.name);
+ return `<div class="car">${c.emoji} <b>${c.name}</b><br><small>${owned?"Уже в автопарке":"Цена: "+c.price+" ₴"}</small><br>
+ <button onclick="buy('${c.name}')" ${owned||game.money<c.price?"disabled":""}>${owned?"Куплено":"Купить"}</button></div>`;
+ }).join("");
+ document.getElementById("orders").innerHTML=game.orders.map(o=>
+ `<div class="order">📍 ${o.from} → ${o.to}<br>💵 Награда: ${o.pay} ₴<br>
+ <button onclick="drive(${o.id})">Взять заказ</button></div>`
+ ).join("")||"Нажми «Новые заказы», чтобы найти пассажиров.";
+ save();
+}
+function newOrders(){
+ const places=["Центр","Вокзал","Парк","Аэропорт","Торговый центр","Набережная"];
+ game.orders=Array.from({length:3},(_,i)=>({
+ id:Date.now()+i,
+ from:places[Math.floor(Math.random()*places.length)],
+ to:places[Math.floor(Math.random()*places.length)],
+ pay:100+Math.floor(Math.random()*201)
+ }));
+ render();
+}
+function drive(id){
+ let o=game.orders.find(x=>x.id===id);
+ if(!o)return;
+ alert("🚕 Поездка началась! Через 3 секунды заказ будет завершён.");
+ game.orders=game.orders.filter(x=>x.id!==id);
+ render();
+ setTimeout(()=>{
+ game.money+=o.pay;
+ if(game.money>=game.level*500){game.money-=game.level*500;game.level++;}
+ save();render();
+ alert("✅ Поездка завершена! Получено "+o.pay+" ₴");
+ },3000);
+}
+function buy(name){
+ let c=catalog.find(x=>x.name===name);
+ if(!c||game.cars.includes(name)||game.money<c.price)return;
+ game.money-=c.price;game.cars.push(name);render();
+}
+if(!game.orders.length)newOrders();else render();
+</script>
+</body>
+</html>
